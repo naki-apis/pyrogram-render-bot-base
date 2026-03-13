@@ -16,12 +16,10 @@ class TelegramBaseBot:
         self.flask_thread = None
         self.download_pool = ThreadPoolExecutor(max_workers=20)
         self.flask_app = Flask(__name__)
-        self.setup_handlers()
-    
-    def setup_handlers(self):
+        
         @self.app.on_message(filters.command("start"))
         async def start_command(client: Client, message: Message):
-            await message.reply("Ejemplo base de bot")
+            await message.reply("¡Bot iniciado correctamente!")
         
         @self.flask_app.route('/')
         def home():
