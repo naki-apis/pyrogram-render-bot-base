@@ -1,0 +1,5 @@
+pyrogram
+nest_asyncio
+beautifulsoup4
+flask
+TgCrypto
