@@ -34,12 +34,7 @@ class NekoTelegram:
         text = message.text.strip()
 
         if text.startswith("/start"):
-            await client.send_photo(
-                chat_id=message.chat.id,
-                photo="https://cdn.imgchest.com/files/93cb097b575e.webp",
-                protect_content=True,
-                caption="Nyaa, Hello, I'm Alice. The cute pet of @nakigeplayer"
-            )
+            await message.reply("Bot is running!")
     
     def start_flask(self):
         if self.flask_thread and self.flask_thread.is_alive():
