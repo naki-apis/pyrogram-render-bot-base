@@ -1,55 +1,62 @@
 import os
 import sys
 import argparse
-from concurrent.futures import ThreadPoolExecutor
+import threading
+from flask import Flask
 from pyrogram import Client, filters
 from pyrogram.types import Message
-from flask import Flask
-import threading
 
-class TelegramBaseBot:
+app = Flask(__name__)
+
+@app.route("/")
+def base_flask():
+    return "Bot is running!"
+
+def run_flask():
+    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
+
+class NekoTelegram:
     def __init__(self, api_id, api_hash, bot_token):
         self.api_id = api_id
         self.api_hash = api_hash
         self.bot_token = bot_token
         self.app = Client("nekobot", api_id=int(api_id), api_hash=api_hash, bot_token=bot_token)
         self.flask_thread = None
-        self.download_pool = ThreadPoolExecutor(max_workers=20)
-        self.flask_app = Flask(__name__)
         
-        @self.app.on_message(filters.command("start"))
-        async def start_command(client: Client, message: Message):
-            await message.reply("¡Bot iniciado correctamente!")
+        @self.app.on_message(filters.private)
+        async def handle_message(client: Client, message: Message):
+            await self._handle_message(client, message)
+    
+    async def _handle_message(self, client: Client, message: Message):
+        if not message.text:
+            return
         
-        @self.flask_app.route('/')
-        def home():
-            return "Bot de Telegram funcionando"
+        text = message.text.strip()
+
+        if text.startswith("/start"):
+            await client.send_photo(
+                chat_id=message.chat.id,
+                photo="https://cdn.imgchest.com/files/93cb097b575e.webp",
+                protect_content=True,
+                caption="Nyaa, Hello, I'm Alice. The cute pet of @nakigeplayer"
+            )
     
     def start_flask(self):
-        def run_flask():
-            self.flask_app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
-        
+        if self.flask_thread and self.flask_thread.is_alive():
+            return
+            
         self.flask_thread = threading.Thread(target=run_flask, daemon=True)
         self.flask_thread.start()
-        print("[INFO] Servidor Flask iniciado en puerto 5000")
     
     def run(self):
-        try:
-            self.app.run()
-        except KeyboardInterrupt:
-            print("\n[INFO] Bot detenido por el usuario")
-        except Exception as e:
-            print(f"[ERROR] Error al ejecutar el bot: {e}")
-        finally:
-            self.download_pool.shutdown(wait=True)
+        self.app.run()
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-A", "--api", help="API ID de Telegram")
-    parser.add_argument("-H", "--hash", help="API Hash de Telegram")
-    parser.add_argument("-T", "--token", help="Token del Bot")
-    parser.add_argument("-F", "--flask", action="store_true", 
-                       help="Incluir servidor Flask junto con el bot")
+    parser.add_argument("-A", "--api", help="API ID")
+    parser.add_argument("-H", "--hash", help="API Hash")
+    parser.add_argument("-T", "--token", help="Bot Token")
+    parser.add_argument("-F", "--flask", action="store_true", help="Incluir Flask")
     args = parser.parse_args()
 
     api_id = args.api or os.environ.get("API_ID")
@@ -57,15 +64,14 @@ def main():
     bot_token = args.token or os.environ.get("BOT_TOKEN")
     
     if not all([api_id, api_hash, bot_token]):
-        print("Error: Faltan credenciales. Usa -A -H -T o variables de entorno.")
+        print("Error: Faltan credenciales")
         sys.exit(1)
     
-    bot = TelegramBaseBot(api_id, api_hash, bot_token)
+    bot = NekoTelegram(api_id, api_hash, bot_token)
 
     if args.flask:
         bot.start_flask()
     
-    print("[INFO] Iniciando bot de Telegram...")
     bot.run()
 
 if __name__ == "__main__":
